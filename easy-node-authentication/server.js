@@ -42,7 +42,7 @@ app.use(session({
   secret: 'ilovescotchscotchyscotchscotch',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: true }
+  cookie: { secure: false }
 })); // session secret
 app.use(passport.initialize());
 app.use(passport.session()); // persistent login sessions

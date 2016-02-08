@@ -56,12 +56,12 @@ module.exports = function(app, passport) {
   });
 
   app.post('/signup', function(req, res, next) {
-    passport.authenticate('local', function(err, user, info) {
+    passport.authenticate('local-signup', function(err, user, info) {
       if (err) {
         return next(err);
       }
       if (!user) {
-        return res.redirect('/login');
+        return res.redirect('/signup');
       }
       req.logIn(user, function(err) {
         if (err) {
@@ -72,6 +72,26 @@ module.exports = function(app, passport) {
       });
     })(req, res, next);
   });
+
+  app.post('/login', function(req, res, next){
+    passport.authenticate('local-login', function(err, user, info){
+      if(err){
+        return next(err);
+      }
+      if(!user){
+        return res.redirect('/login');
+
+      }
+      req.logIn(user, function(err){
+        if(err){
+          return next(err);
+        }
+        console.log(user);
+        return res.redirect('/profile');
+      });
+    })(req, res, next);
+  });
+
 };
 
 // route middleware to make sure a user is logged in
