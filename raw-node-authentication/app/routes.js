@@ -44,7 +44,7 @@ module.exports = function(app, passport) {
   // we will use route middleware to verify this (the isLoggedIn function)
   app.get('/profile', isLoggedIn, function(req, res) {
     res.render('profile.ejs', {
-      user: req.user // get the user out of session and pass to template
+      user: req.session.user // get the user out of session and pass to template
     });
   });
 
@@ -52,12 +52,36 @@ module.exports = function(app, passport) {
   // LOGOUT ==============================
   // =====================================
   app.get('/logout', function(req, res) {
-    req.logout();
+    req.session.user = null;
     res.redirect('/');
   });
 
   app.post('/signup', function(req, res, next) {
-
+    var _user = {
+      email: req.body.email,
+      password: req.body.password
+    };
+    User.findOne({email: _user.email}, function(err, user){
+      if(err){
+        throw err;
+      }
+      if(user){
+        req.flash('message', 'User exists!!');
+        res.redirect('/signup');
+      }else{
+        var newUser = new User();
+        newUser.email = _user.email;
+        newUser.password = newUser.generateHash(_user.password);
+        newUser.save(function(err){
+          if(err){
+            throw err;
+          }else{
+            req.session.user = user;
+            res.redirect('/profile');
+          }
+        });
+      }
+    });
   });
 
   app.post('/login', verifyUser, function(req, res, next) {
@@ -66,7 +90,7 @@ module.exports = function(app, passport) {
 
   // route for logging out
   app.get('/logout', function(req, res) {
-    req.logout();
+    req.session.user = null;
     res.redirect('/');
   });
 
@@ -76,32 +100,31 @@ module.exports = function(app, passport) {
 function isLoggedIn(req, res, next) {
 
   // if user is authenticated in the session, carry on
-  if (req.isAuthenticated()) {
+  if (req.session.user) {
     return next();
   } else {
     // if they aren't redirect them to the home page
     res.redirect('/');
   }
 
-};
+}
 
 function verifyUser(req, res, next) {
   var _user = {
-    name: req.body.name,
+    email: req.body.email,
     password: req.body.password
   };
-  if (!_user.name) {
+  console.log(_user);
+  if (!_user.email) {
     req.flash('message', 'Flashed message');
     return res.redirect('/login');
   }
   User.findOne({
-    'name': _user.name
-  }, function(err, user) {
-    if (err) {
-      throw (err);
-    }
-    if (user && user.validPassword()) {
+    email: _user.email
+  }, function(err, user){
+    if (user && user.validPassword(_user.password)) {
       // check user password
+      req.session.user = user;
       return res.redirect('/profile');
     } else {
       req.flash('message', 'No User!!!');
